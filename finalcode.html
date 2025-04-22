@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Visa AR Rewards Gamified</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Arial', sans-serif;
+        background: #000;
+      }
+      #loadingScreen, #xpPopup, #confettiMessage, #walletScreen, #leaderboardScreen, #dealsNotification, #chatbotButton, #chatbotContainer {
+        position: absolute;
+        z-index: 20;
+      }
+      #loadingScreen {
+        top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8); color: #fff;
+        font-size: 24px; padding: 20px 40px;
+        border-radius: 12px; text-align: center;
+      }
+      #uiContainer {
+        position: absolute; top: 20px; left: 20px;
+        background: #1A1F71; padding: 15px;
+        border-radius: 12px; color: #FFB500;
+        font-size: 16px; z-index: 10; width: 260px;
+      }
+      #xpBarBackground {
+        background: #ccc; height: 10px;
+        border-radius: 5px; overflow: hidden; margin-top: 5px;
+      }
+      #xpBarFill {
+        background: #FFB500; height: 10px; width: 0%; border-radius: 5px;
+      }
+      #xpPopup {
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: #FFB500; font-size: 30px;
+        display: none; font-weight: bold;
+        animation: floatUp 1.5s ease forwards;
+      }
+      @keyframes floatUp {
+        0% { transform: translate(-50%, 0); opacity: 1; }
+        100% { transform: translate(-50%, -150px); opacity: 0; }
+      }
+      #confettiMessage {
+        top: 40%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 28px; background: #FFB500;
+        color: #1A1F71; padding: 20px 30px;
+        border-radius: 12px; display: none;
+      }
+      #walletScreen, #leaderboardScreen {
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: #1A1F71; color: #FFB500;
+        padding: 30px; font-size: 22px;
+        display: none;
+      }
+      .wallet-item, #leaderboardList div {
+        margin: 10px 0; padding: 15px;
+        background: #FFB500; color: #1A1F71;
+        border-radius: 10px; font-weight: bold;
+      }
+      #walletButton, #leaderboardButton {
+        margin-top: 10px; background: #FFB500;
+        color: #1A1F71; padding: 10px 15px;
+        border: none; border-radius: 8px;
+        font-size: 16px; cursor: pointer;
+      }
+      #dealsNotification {
+        bottom: 20px; right: 20px;
+        background: #FFB500; color: #1A1F71;
+        padding: 15px 20px; border-radius: 10px;
+        max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        font-size: 16px; display: block;
+      }
+      #dealsHeader {
+        display: flex; justify-content: space-between;
+        align-items: center; font-weight: bold;
+        margin-bottom: 10px;
+      }
+      #dealsHeader button {
+        background: none; border: none;
+        font-size: 18px; cursor: pointer;
+        color: #1A1F71;
+      }
+      #chatbotButton {
+        bottom: 20px; left: 20px;
+        background: #FFB500; color: #1A1F71;
+        border-radius: 50%; width: 60px; height: 60px;
+        font-size: 28px; text-align: center;
+        line-height: 60px; cursor: pointer;
+      }
+      #chatbotContainer {
+        bottom: 100px; left: 20px; width: 300px;
+        background: #fff; color: #000;
+        border-radius: 12px; display: none;
+        flex-direction: column;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      }
+      #chatMessages {
+        height: 200px; overflow-y: auto;
+        padding: 10px;
+      }
+      #chatInput {
+        display: flex; border-top: 1px solid #ccc;
+      }
+      #chatInput input {
+        flex: 1; padding: 10px; border: none;
+      }
+      #chatInput button {
+        background: #1A1F71; color: #FFB500;
+        border: none; padding: 10px; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loadingScreen">Loading AR Experience...</div>
+    <div id="uiContainer">
+      <div><strong>Level:</strong> <span id="level">1</span></div>
+      <div><strong>XP:</strong> <span id="xpPoints">0</span>/100</div>
+      <div id="xpBarBackground"><div id="xpBarFill"></div></div>
+      <div><strong>Rewards Collected:</strong> <span id="count">0</span></div>
+      <div><strong>Daily Streak:</strong> <span id="streak">0</span> 🔥</div>
+      <button id="walletButton">🎁 Open Wallet</button>
+      <button id="leaderboardButton">🏆 Open Leaderboard</button>
+    </div>
+    <div id="xpPopup">+10 XP!</div>
+    <div id="confettiMessage">🎉 You Collected a Visa Reward!</div>
+
+    <!-- Wallet -->
+    <div id="walletScreen">
+      <h2>My Rewards Wallet 🎁</h2>
+      <div id="walletItems"></div>
+      <button onclick="donatePoints()">🌱 Donate Points to Plant a Tree</button><br><br>
+      <button id="closeWalletButton">Close Wallet</button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboardScreen">
+      <h2>🏆 Leaderboard</h2>
+      <div id="leaderboardList">
+        <div>Alice - 120 XP</div>
+        <div>Bob - 90 XP</div>
+        <div>You - 0 XP</div>
+      </div>
+      <button id="closeLeaderboardButton">Close Leaderboard</button>
+    </div>
+
+    <!-- Offers -->
+    <div id="dealsNotification">
+      <div id="dealsHeader">🔔 Deals Near You <button id="closeDeals">✖</button></div>
+      <ul id="dealsList">
+        <li>20% off at Eco Café</li>
+        <li>Buy 1 Get 1 at Green Market</li>
+        <li>Double XP Weekend!</li>
+      </ul>
+    </div>
+
+    <!-- Chatbot -->
+    <div id="chatbotButton">💬</div>
+    <div id="chatbotContainer">
+      <div id="chatMessages"></div>
+      <div id="chatInput">
+        <input type="text" id="chatText" placeholder="Ask something...">
+        <button onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <!-- AR Scene -->
+    <a-scene vr-mode-ui="enabled: false" embedded arjs="sourceType: webcam; gpsMinAccuracy: 30; gpsTimeInterval: 1000;">
+      <a-camera gps-camera rotation-reader></a-camera>
+      <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
+      <a-gltf-model
+        id="reward"
+        class="clickable"
+        src="https://myrow11.github.io/3d/visa.glb"
+        scale="2 2 2"
+        look-at="[gps-camera]"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 15000"
+        gps-entity-place="latitude: 0; longitude: 0">
+      </a-gltf-model>
+    </a-scene>
+
+    <script>
+      let xp = 0, level = 1, rewardsCollected = 0, streak = 0;
+
+      document.getElementById('reward').addEventListener('click', () => {
+        xp += 10;
+        if (xp >= 100) {
+          xp -= 100;
+          level++;
+        }
+        rewardsCollected++;
+        streak++;
+
+        document.getElementById('xpPopup').style.display = 'block';
+        document.getElementById('xpPoints').textContent = xp;
+        document.getElementById('level').textContent = level;
+        document.getElementById('xpBarFill').style.width = `${xp}%`;
+        document.getElementById('count').textContent = rewardsCollected;
+        document.getElementById('streak').textContent = streak + ' 🔥';
+
+        const rewardItem = document.createElement('div');
+        rewardItem.className = 'wallet-item';
+        rewardItem.textContent = `Reward ${rewardsCollected}`;
+        document.getElementById('walletItems').appendChild(rewardItem);
+
+        const confetti = document.getElementById('confettiMessage');
+        confetti.style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('xpPopup').style.display = 'none';
+          confetti.style.display = 'none';
+        }, 2000);
+      });
+
+      document.getElementById('walletButton').onclick = () => document.getElementById('walletScreen').style.display = 'block';
+      document.getElementById('closeWalletButton').onclick = () => document.getElementById('walletScreen').style.display = 'none';
+
+      document.getElementById('leaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'block';
+      document.getElementById('closeLeaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'none';
+
+      document.getElementById('chatbotButton').onclick = () => {
+        const bot = document.getElementById('chatbotContainer');
+        bot.style.display = bot.style.display === 'none' ? 'flex' : 'none';
+      };
+
+      document.getElementById('closeDeals').onclick = () => document.getElementById('dealsNotification').style.display = 'none';
+
+      function sendChat() {
+        const input = document.getElementById('chatText');
+        const msg = input.value.trim();
+        if (msg) {
+          const msgDiv = document.createElement('div');
+          msgDiv.textContent = "👤 " + msg;
+          document.getElementById('chatMessages').appendChild(msgDiv);
+          input.value = '';
+        }
+      }
+
+      function donatePoints() {
+        if (xp >= 20) {
+          xp -= 20;
+          document.getElementById('xpPoints').textContent = xp;
+          document.getElementById('xpBarFill').style.width = `${xp}%`;
+          alert("🌱 Thank you! You've donated 20 XP to plant a tree!");
+        } else {
+          alert("You need at least 20 XP to donate.");
+        }
+      }
+
+      window.onload = () => document.getElementById('loadingScreen').style.display = 'none';
+    </script>
+  </body>
+</html>
