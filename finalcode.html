@@ -65,7 +65,13 @@
       <!-- Leaderboard moved here -->
       <div id="leaderboard">
         <h3>Leaderboard</h3>
-        <ul id="leaderboardList"></ul>
+        <ul id="leaderboardList">
+          <li>John Doe - Level 5 - 500 XP</li>
+          <li>Jane Smith - Level 4 - 400 XP</li>
+          <li>Tom Brown - Level 3 - 300 XP</li>
+          <li>Alice Green - Level 2 - 200 XP</li>
+          <li>Bob Blue - Level 1 - 100 XP</li>
+        </ul>
       </div>
     </div>
     <div id="snapshotScreen">
@@ -111,7 +117,13 @@
       let rewardCollected = false, xp = 0, level = 1, lastSnapshotBlob = null;
       const HOUR = 60 * 60 * 1000;
       let rewardEl, btn3D, countEl;
-      let leaderboardData = [];
+      let leaderboardData = [
+        { name: "John Doe", level: 5, xp: 500 },
+        { name: "Jane Smith", level: 4, xp: 400 },
+        { name: "Tom Brown", level: 3, xp: 300 },
+        { name: "Alice Green", level: 2, xp: 200 },
+        { name: "Bob Blue", level: 1, xp: 100 }
+      ];
 
       // Function to save leaderboard data
       function saveLeaderboard() {
@@ -128,13 +140,6 @@
           li.textContent = `${entry.name} - Level ${entry.level} - ${entry.xp} XP`;
           leaderboardList.appendChild(li);
         });
-      }
-
-      // Function to add a player to leaderboard
-      function addToLeaderboard(name, level, xp) {
-        leaderboardData.push({ name, level, xp });
-        leaderboardData.sort((a, b) => b.xp - a.xp); // Sort by XP
-        saveLeaderboard();
       }
 
       // Chatbot functionality
@@ -187,76 +192,32 @@
         const saveSnapshotBtn = document.getElementById('saveSnapshotButton');
         const closeSnapshotBtn = document.getElementById('closeSnapshotButton');
         const shareBtn = document.getElementById('shareButton');
-        const walletScreen = document.getElementById('walletScreen');
-        const snapshotScreen = document.getElementById('snapshotScreen');
-        const snapImg = document.getElementById('snapshotImage');
         const donateBtn = document.getElementById('donateButton');
-        const donationMsg = document.getElementById('donationMessage');
-
-        countEl.innerText = localStorage.getItem('count') || '0';
-
-        // Get leaderboard from localStorage
-        const storedLeaderboard = localStorage.getItem('leaderboard');
-        if (storedLeaderboard) {
-          leaderboardData = JSON.parse(storedLeaderboard);
-        }
+        const donateMessage = document.getElementById('donationMessage');
+        const walletScreen = document.getElementById('walletScreen');
+        
+        // Show leaderboard
         displayLeaderboard();
-        
-        const today = new Date().toDateString();
-        if (localStorage.getItem('questDay') !== today) {
-          localStorage.setItem('questDay', today);
-          localStorage.setItem('dailyDone', 'false');
-        }
-        
-        let dailyDone = localStorage.getItem('dailyDone') === 'true';
-        if (dailyDone) {
-          dailyBtn.disabled = true;
-          dailyBtn.innerText = 'Daily Quest ✓';
-          dailyBtn.style.opacity = 0.6;
-        }
-
-        dailyBtn.onclick = () => {
-          if (!dailyDone) {
-            addXP(20);
-            dailyDone = true;
-            localStorage.setItem('dailyDone', 'true');
-            showDailyPopup('Daily Quest complete! +20 XP');
-            dailyBtn.disabled = true;
-            dailyBtn.innerText = 'Daily Quest ✓';
-            dailyBtn.style.opacity = 0.6;
-          }
-        };
 
         walletBtn.onclick = () => {
-          updateWallet();
           walletScreen.style.display = 'block';
+          updateWallet();
         };
-        closeWalletBtn.onclick = () => walletScreen.style.display = 'none';
+        
+        closeWalletBtn.onclick = () => {
+          walletScreen.style.display = 'none';
+        };
 
         donateBtn.onclick = () => {
-          let current = parseInt(localStorage.getItem('count') || '0', 10);
-          if (current > 0) {
-            current--;
-            localStorage.setItem('count', current);
-            countEl.innerText = current;
-            updateWallet();
-            donationMsg.style.display = 'block';
-            setTimeout(() => donationMsg.style.display = 'none', 3000);
-          } else {
-            alert('You don\'t have any rewards to donate!');
-          }
+          donateMessage.style.display = 'block';
+          setTimeout(() => donateMessage.style.display = 'none', 3000);
         };
 
-        snapshotBtn.onclick = () => {
-          snapshotScreen.style.display = 'flex';
-          setTimeout(() => { snapImg.src = captureSnapshot(); }, 100);
-        };
-        closeSnapshotBtn.onclick = () => snapshotScreen.style.display = 'none';
         saveSnapshotBtn.onclick = () => saveSnapshot();
 
         shareBtn.onclick = () => alert('Sharing not yet implemented!');
       };
-      
+
       // Function to update wallet display
       function updateWallet() {
         const walletItems = document.getElementById('walletItems');
@@ -286,7 +247,8 @@
         document.getElementById('level').innerText = level;
         document.getElementById('xpPoints').innerText = xp;
         alert(`Congratulations! You reached level ${level}`);
-        addToLeaderboard("Player", level, 100);  // Example of adding player to leaderboard
+        leaderboardData.push({ name: 'Player', level: level, xp: 100 });
+        saveLeaderboard();  // Save updated leaderboard
       }
 
       // Capture snapshot
