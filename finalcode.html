@@ -1,298 +1,310 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Visa AR Rewards Gamified</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Visa AR Rewards — Hourly Respawn</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
     <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: 'Arial', sans-serif;
-        background: #000;
-      }
-      #loadingScreen, #xpPopup, #confettiMessage, #walletScreen, #leaderboardScreen, #dealsNotification, #chatbotButton, #chatbotContainer {
-        position: absolute;
-        z-index: 20;
-      }
-      #loadingScreen {
-        top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.8); color: #fff;
-        font-size: 24px; padding: 20px 40px;
-        border-radius: 12px; text-align: center;
-      }
-      #uiContainer {
-        position: absolute; top: 20px; left: 20px;
-        background: #1A1F71; padding: 15px;
-        border-radius: 12px; color: #FFB500;
-        font-size: 16px; z-index: 10; width: 260px;
-      }
-      #xpBarBackground {
-        background: #ccc; height: 10px;
-        border-radius: 5px; overflow: hidden; margin-top: 5px;
-      }
-      #xpBarFill {
-        background: #FFB500; height: 10px; width: 0%; border-radius: 5px;
-      }
-      #xpPopup {
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        color: #FFB500; font-size: 30px;
-        display: none; font-weight: bold;
-        animation: floatUp 1.5s ease forwards;
-      }
-      @keyframes floatUp {
-        0% { transform: translate(-50%, 0); opacity: 1; }
-        100% { transform: translate(-50%, -150px); opacity: 0; }
-      }
-      #confettiMessage {
-        top: 40%; left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 28px; background: #FFB500;
-        color: #1A1F71; padding: 20px 30px;
-        border-radius: 12px; display: none;
-      }
-      #walletScreen, #leaderboardScreen {
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: #1A1F71; color: #FFB500;
-        padding: 30px; font-size: 22px;
-        display: none;
-      }
-      .wallet-item, #leaderboardList div {
-        margin: 10px 0; padding: 15px;
-        background: #FFB500; color: #1A1F71;
-        border-radius: 10px; font-weight: bold;
-      }
-      #walletButton, #leaderboardButton {
-        margin-top: 10px; background: #FFB500;
-        color: #1A1F71; padding: 10px 15px;
-        border: none; border-radius: 8px;
-        font-size: 16px; cursor: pointer;
-      }
-      #dealsNotification {
-        bottom: 20px; right: 20px;
-        background: #FFB500; color: #1A1F71;
-        padding: 15px 20px; border-radius: 10px;
-        max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        font-size: 16px; display: block;
-      }
-      #dealsHeader {
-        display: flex; justify-content: space-between;
-        align-items: center; font-weight: bold;
-        margin-bottom: 10px;
-      }
-      #dealsHeader button {
-        background: none; border: none;
-        font-size: 18px; cursor: pointer;
-        color: #1A1F71;
-      }
-      #chatbotButton {
-        bottom: 20px; left: 20px;
-        background: #FFB500; color: #1A1F71;
-        border-radius: 50%; width: 60px; height: 60px;
-        font-size: 28px; text-align: center;
-        line-height: 60px; cursor: pointer;
-      }
-      #chatbotContainer {
-        bottom: 100px; left: 20px; width: 300px;
-        background: #fff; color: #000;
-        border-radius: 12px; display: none;
-        flex-direction: column;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      }
-      #chatMessages {
-        height: 200px; overflow-y: auto;
-        padding: 10px;
-      }
-      #chatInput {
-        display: flex; border-top: 1px solid #ccc;
-      }
-      #chatInput input {
-        flex: 1; padding: 10px; border: none;
-      }
-      #chatInput button {
-        background: #1A1F71; color: #FFB500;
-        border: none; padding: 10px; cursor: pointer;
-      }
+      #loadingScreen { display:none!important; }
+      :root { --primary:#1A1F71; --accent:#FFB500; --bg:#000; --fg:#fff; }
+      body { margin:0; overflow:hidden; background:var(--bg); color:var(--fg); font-family:Arial,sans-serif; }
+      #uiContainer { position:absolute; top:20px; left:20px; background:var(--primary); padding:15px; border-radius:12px; width:240px; z-index:10; }
+      #uiContainer div { margin-bottom:8px; }
+      #uiContainer button { display:block; width:100%; margin-top:6px; padding:8px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:14px; }
+      #xpBarBackground { background:#333; height:10px; border-radius:5px; overflow:hidden; margin-top:5px; }
+      #xpBarFill { background:var(--accent); height:100%; width:0%; }
+      #xpPopup, #confettiMessage, #dailyPopup { position:absolute; left:50%; transform:translateX(-50%); text-align:center; z-index:20; font-weight:bold; }
+      #xpPopup { top:45%; color:var(--accent); font-size:1.5rem; display:none; animation:floatUp 1.5s ease forwards; }
+      #confettiMessage { top:50%; font-size:2rem; background:var(--accent); color:var(--primary); padding:1rem; border-radius:12px; display:none; }
+      #dailyPopup { bottom:20%; color:var(--primary); font-size:1rem; background:var(--accent); padding:0.5rem 1rem; border-radius:8px; display:none; }
+      @keyframes floatUp { to { transform:translate(-50%,-8rem); opacity:0; } }
+      #walletScreen { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--primary); color:var(--accent); padding:30px; box-sizing:border-box; z-index:30; overflow-y:auto; }
+      .wallet-item { background:var(--accent); color:var(--primary); padding:15px; margin:10px 0; border-radius:10px; text-align:center; }
+      #bottomBar { position:absolute; bottom:env(safe-area-inset-bottom,40px); left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:10; }
+      #bottomBar button { padding:8px 12px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:14px; }
+      #snapshotScreen { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; flex-direction:column; z-index:40; }
+      #snapshotScreen img { max-width:90%; max-height:70%; border:5px solid var(--accent); border-radius:8px; }
+      #snapshotControls { margin-top:20px; display:flex; gap:10px; }
+      #snapshotControls button { padding:10px 20px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:16px; }
+      #chatbot { position:fixed; bottom:10px; right:10px; background-color:#FFF; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0, 0, 0, 0.2); z-index:50; width:300px; max-height:400px; overflow:auto; display:none; }
+      #chatbot .messages { max-height:300px; overflow:auto; }
+      #chatbot input { width:100%; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #ccc; }
+      #leaderboard { position:absolute; top:calc(20px + 350px); left:270px; background:var(--primary); padding:15px; border-radius:12px; width:240px; z-index:10; color: var(--accent); }
+      #leaderboard h3 { text-align:center; margin-bottom:10px; }
+      #leaderboard ul { list-style:none; padding:0; }
     </style>
   </head>
   <body>
-    <div id="loadingScreen">Loading AR Experience...</div>
+    <div id="loadingScreen">Loading AR Experience…</div>
     <div id="uiContainer">
       <div><strong>Level:</strong> <span id="level">1</span></div>
       <div><strong>XP:</strong> <span id="xpPoints">0</span>/100</div>
       <div id="xpBarBackground"><div id="xpBarFill"></div></div>
       <div><strong>Rewards Collected:</strong> <span id="count">0</span></div>
-      <div><strong>Daily Streak:</strong> <span id="streak">0</span> 🔥</div>
       <button id="walletButton">🎁 Open Wallet</button>
-      <button id="leaderboardButton">🏆 Open Leaderboard</button>
+    </div>
+    <div id="bottomBar">
+      <button id="dailyQuestButton">🎯 Daily Quest</button>
+      <button id="snapshotButton">📸 Snapshot</button>
+      <button id="shareButton">📣 Share Progress</button>
+      <button id="chatButton">💬 Chat</button>
     </div>
     <div id="xpPopup">+10 XP!</div>
     <div id="confettiMessage">🎉 You Collected a Visa Reward!</div>
-
-    <!-- Wallet -->
+    <div id="dailyPopup"></div>
     <div id="walletScreen">
       <h2>My Rewards Wallet 🎁</h2>
       <div id="walletItems"></div>
-      <button onclick="donatePoints()">🌱 Donate Points to Plant a Tree</button><br><br>
-      <button id="closeWalletButton">Close Wallet</button>
-    </div>
-
-    <!-- Leaderboard -->
-    <div id="leaderboardScreen">
-      <h2>🏆 Leaderboard</h2>
-      <div id="leaderboardList">
-        <div>Alice - 120 XP</div>
-        <div>Bob - 90 XP</div>
-        <div>You - 0 XP</div>
+      <button id="donateButton">🌱 Donate a Reward to Plant a Tree</button>
+      <div id="donationMessage" style="display:none; margin-top:10px; background:#fff; color:#1A1F71; padding:10px; border-radius:8px;">
+        🌳 Thank you! You've donated a reward to plant a tree!
       </div>
-      <button id="closeLeaderboardButton">Close Leaderboard</button>
+      <button id="closeWalletButton">Close Wallet</button>
+      <!-- Leaderboard moved here -->
+      <div id="leaderboard">
+        <h3>Leaderboard</h3>
+        <ul id="leaderboardList"></ul>
+      </div>
     </div>
-
-    <!-- Offers -->
-    <div id="dealsNotification">
-      <div id="dealsHeader">🔔 Deals Near You <button id="closeDeals">✖</button></div>
-      <ul id="dealsList">
-        <li>20% off at Eco Café</li>
-        <li>Buy 1 Get 1 at Green Market</li>
-        <li>Double XP Weekend!</li>
-      </ul>
+    <div id="snapshotScreen">
+      <img id="snapshotImage" src=""/>
+      <div id="snapshotControls">
+        <button id="saveSnapshotButton">💾 Save/Share</button>
+        <button id="closeSnapshotButton">✖ Close</button>
+      </div>
     </div>
 
     <!-- Chatbot -->
-    <div id="chatbotButton">💬</div>
-    <div id="chatbotContainer">
-      <div id="chatMessages"></div>
-      <div id="chatInput">
-        <input type="text" id="chatText" placeholder="Ask something...">
-        <button onclick="sendChat()">Send</button>
-      </div>
+    <div id="chatbot">
+      <div class="messages" id="chatMessages"></div>
+      <input type="text" id="chatInput" placeholder="Ask me anything...">
     </div>
 
-    <!-- AR Scene -->
-    <a-scene vr-mode-ui="enabled: false" embedded arjs="sourceType: webcam; gpsMinAccuracy: 30; gpsTimeInterval: 1000;">
+    <a-scene embedded vr-mode-ui="enabled:false"
+             arjs="sourceType:webcam; gpsMinAccuracy:30; gpsTimeInterval:1000;">
+      <a-assets>
+        <a-asset-item id="visaModel" src="https://myrow11.github.io/3d/visa.glb"></a-asset-item>
+        <audio id="collectSound" src="collect.mp3" preload="auto"></audio>
+        <audio id="levelUpSound" src="levelup.mp3" preload="auto"></audio>
+      </a-assets>
       <a-camera gps-camera rotation-reader></a-camera>
-      <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
-      <a-image
-        id="reward"
-        class="clickable"
-        src="10243319.png"
-        scale="2 2 2"
-        look-at="[gps-camera]"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 15000"
-        gps-entity-place="latitude: 39.0067; longitude: 77.4291">
-      </a-image>
+      <a-entity cursor="rayOrigin:mouse" raycaster="objects:.clickable"></a-entity>
+      <a-gltf-model id="reward" class="clickable" src="#visaModel"
+        scale="2 2 2" look-at="[gps-camera]"
+        animation__rotate="property:rotation; to:0 360 0; loop:true; dur:15000"
+        animation__pulse="property:scale; to:2.2 2.2 2.2; dir:alternate; loop:true; dur:1000"
+        visible="false">
+      </a-gltf-model>
+      <a-entity id="collectButton3D" class="clickable" look-at="[gps-camera]" visible="false">
+        <a-box color="#FFB500" depth="0.2" height="0.2" width="0.6"></a-box>
+        <a-text value="Collect!" align="center" color="#000" width="1.5" position="0 0.15 0"></a-text>
+      </a-entity>
+      <a-entity id="sparkles"
+        particle-system="preset:dust; color:#FFB500,#1A1F71; particleCount:120"
+        visible="false">
+      </a-entity>
     </a-scene>
+
     <script>
-  let xp = 0, level = 1, rewardsCollected = 0, streak = 0;
+      let rewardCollected = false, xp = 0, level = 1, lastSnapshotBlob = null;
+      const HOUR = 60 * 60 * 1000;
+      let rewardEl, btn3D, countEl;
+      let leaderboardData = [];
 
-  function collectReward() {
-    xp += 10;
-    if (xp >= 100) {
-      xp -= 100;
-      level++;
-    }
-    rewardsCollected++;
-    streak++;
+      // Function to save leaderboard data
+      function saveLeaderboard() {
+        localStorage.setItem('leaderboard', JSON.stringify(leaderboardData));
+        displayLeaderboard();
+      }
 
-    document.getElementById('xpPopup').style.display = 'block';
-    document.getElementById('xpPoints').textContent = xp;
-    document.getElementById('level').textContent = level;
-    document.getElementById('xpBarFill').style.width = `${xp}%`;
-    document.getElementById('count').textContent = rewardsCollected;
-    document.getElementById('streak').textContent = streak + ' 🔥';
+      // Function to display leaderboard
+      function displayLeaderboard() {
+        const leaderboardList = document.getElementById('leaderboardList');
+        leaderboardList.innerHTML = '';
+        leaderboardData.forEach(entry => {
+          const li = document.createElement('li');
+          li.textContent = `${entry.name} - Level ${entry.level} - ${entry.xp} XP`;
+          leaderboardList.appendChild(li);
+        });
+      }
 
-    const rewardItem = document.createElement('div');
-    rewardItem.className = 'wallet-item';
-    rewardItem.textContent = `Reward ${rewardsCollected}`;
-    document.getElementById('walletItems').appendChild(rewardItem);
+      // Function to add a player to leaderboard
+      function addToLeaderboard(name, level, xp) {
+        leaderboardData.push({ name, level, xp });
+        leaderboardData.sort((a, b) => b.xp - a.xp); // Sort by XP
+        saveLeaderboard();
+      }
 
-    const confetti = document.getElementById('confettiMessage');
-    confetti.style.display = 'block';
-    setTimeout(() => {
-      document.getElementById('xpPopup').style.display = 'none';
-      confetti.style.display = 'none';
-    }, 2000);
-  }
+      // Chatbot functionality
+      const chatbot = document.getElementById('chatbot');
+      const chatInput = document.getElementById('chatInput');
+      const chatMessages = document.getElementById('chatMessages');
 
-  document.querySelector('#reward').addEventListener('click', () => {
-    const reward = document.querySelector('#reward');
-    const camera = document.querySelector('[gps-camera]');
+      // Add chatbot response
+      function sendChatMessage(message) {
+        const p = document.createElement('p');
+        p.textContent = `You: ${message}`;
+        chatMessages.appendChild(p);
+        
+        // Simple bot responses
+        const botMessage = document.createElement('p');
+        if (message.toLowerCase().includes('hello')) {
+          botMessage.textContent = 'Bot: Hi there!';
+        } else if (message.toLowerCase().includes('level')) {
+          botMessage.textContent = `Bot: Your current level is ${level}`;
+        } else if (message.toLowerCase().includes('xp')) {
+          botMessage.textContent = `Bot: You have ${xp} XP`;
+        } else {
+          botMessage.textContent = 'Bot: I\'m not sure how to respond to that.';
+        }
+        chatMessages.appendChild(botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
 
-    const rewardData = reward.getAttribute('gps-entity-place');
-    const cameraCoords = camera.components['gps-camera'].currentCoords;
+      // Event listeners
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          sendChatMessage(chatInput.value);
+          chatInput.value = '';
+        }
+      });
 
-    if (!cameraCoords || !rewardData) {
-      alert("GPS data not ready yet.");
-      return;
-    }
+      // Toggle chatbot visibility
+      document.getElementById('chatButton').addEventListener('click', () => {
+        chatbot.style.display = chatbot.style.display === 'block' ? 'none' : 'block';
+      });
 
-    const distance = getDistanceFromLatLonInMeters(
-      rewardData.latitude,
-      rewardData.longitude,
-      cameraCoords.latitude,
-      cameraCoords.longitude
-    );
+      window.onload = () => {
+        rewardEl = document.getElementById('reward');
+        btn3D = document.getElementById('collectButton3D');
+        countEl = document.getElementById('count');
+        const dailyBtn = document.getElementById('dailyQuestButton');
+        const walletBtn = document.getElementById('walletButton');
+        const closeWalletBtn = document.getElementById('closeWalletButton');
+        const snapshotBtn = document.getElementById('snapshotButton');
+        const saveSnapshotBtn = document.getElementById('saveSnapshotButton');
+        const closeSnapshotBtn = document.getElementById('closeSnapshotButton');
+        const shareBtn = document.getElementById('shareButton');
+        const walletScreen = document.getElementById('walletScreen');
+        const snapshotScreen = document.getElementById('snapshotScreen');
+        const snapImg = document.getElementById('snapshotImage');
+        const donateBtn = document.getElementById('donateButton');
+        const donationMsg = document.getElementById('donationMessage');
 
-    if (distance <= 20) {
-      collectReward();
-    } else {
-      alert("You're too far from the reward!");
-    }
-  });
+        countEl.innerText = localStorage.getItem('count') || '0';
 
-  // Haversine formula to calculate distance between two lat/lon pairs
-  function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+        // Get leaderboard from localStorage
+        const storedLeaderboard = localStorage.getItem('leaderboard');
+        if (storedLeaderboard) {
+          leaderboardData = JSON.parse(storedLeaderboard);
+        }
+        displayLeaderboard();
+        
+        const today = new Date().toDateString();
+        if (localStorage.getItem('questDay') !== today) {
+          localStorage.setItem('questDay', today);
+          localStorage.setItem('dailyDone', 'false');
+        }
+        
+        let dailyDone = localStorage.getItem('dailyDone') === 'true';
+        if (dailyDone) {
+          dailyBtn.disabled = true;
+          dailyBtn.innerText = 'Daily Quest ✓';
+          dailyBtn.style.opacity = 0.6;
+        }
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c;
-    return d;
-  }
+        dailyBtn.onclick = () => {
+          if (!dailyDone) {
+            addXP(20);
+            dailyDone = true;
+            localStorage.setItem('dailyDone', 'true');
+            showDailyPopup('Daily Quest complete! +20 XP');
+            dailyBtn.disabled = true;
+            dailyBtn.innerText = 'Daily Quest ✓';
+            dailyBtn.style.opacity = 0.6;
+          }
+        };
 
-  document.getElementById('walletButton').onclick = () => document.getElementById('walletScreen').style.display = 'block';
-  document.getElementById('closeWalletButton').onclick = () => document.getElementById('walletScreen').style.display = 'none';
+        walletBtn.onclick = () => {
+          updateWallet();
+          walletScreen.style.display = 'block';
+        };
+        closeWalletBtn.onclick = () => walletScreen.style.display = 'none';
 
-  document.getElementById('leaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'block';
-  document.getElementById('closeLeaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'none';
+        donateBtn.onclick = () => {
+          let current = parseInt(localStorage.getItem('count') || '0', 10);
+          if (current > 0) {
+            current--;
+            localStorage.setItem('count', current);
+            countEl.innerText = current;
+            updateWallet();
+            donationMsg.style.display = 'block';
+            setTimeout(() => donationMsg.style.display = 'none', 3000);
+          } else {
+            alert('You don\'t have any rewards to donate!');
+          }
+        };
 
-  document.getElementById('chatbotButton').onclick = () => {
-    const bot = document.getElementById('chatbotContainer');
-    bot.style.display = bot.style.display === 'none' ? 'flex' : 'none';
-  };
+        snapshotBtn.onclick = () => {
+          snapshotScreen.style.display = 'flex';
+          setTimeout(() => { snapImg.src = captureSnapshot(); }, 100);
+        };
+        closeSnapshotBtn.onclick = () => snapshotScreen.style.display = 'none';
+        saveSnapshotBtn.onclick = () => saveSnapshot();
 
-  document.getElementById('closeDeals').onclick = () => document.getElementById('dealsNotification').style.display = 'none';
+        shareBtn.onclick = () => alert('Sharing not yet implemented!');
+      };
+      
+      // Function to update wallet display
+      function updateWallet() {
+        const walletItems = document.getElementById('walletItems');
+        walletItems.innerHTML = `
+          <div class="wallet-item">Reward 1</div>
+          <div class="wallet-item">Reward 2</div>
+          <div class="wallet-item">Reward 3</div>
+        `;
+      }
+      
+      // Function to add XP
+      function addXP(amount) {
+        xp += amount;
+        document.getElementById('xpPoints').innerText = xp;
+        const xpPercentage = (xp / 100) * 100;
+        document.getElementById('xpBarFill').style.width = `${xpPercentage}%`;
+        
+        if (xp >= 100) {
+          levelUp();
+        }
+      }
 
-  function sendChat() {
-    const input = document.getElementById('chatText');
-    const msg = input.value.trim();
-    if (msg) {
-      const msgDiv = document.createElement('div');
-      msgDiv.textContent = "👤 " + msg;
-      document.getElementById('chatMessages').appendChild(msgDiv);
-      input.value = '';
-    }
-  }
+      // Function to handle level up
+      function levelUp() {
+        level++;
+        xp = 0;
+        document.getElementById('level').innerText = level;
+        document.getElementById('xpPoints').innerText = xp;
+        alert(`Congratulations! You reached level ${level}`);
+        addToLeaderboard("Player", level, 100);  // Example of adding player to leaderboard
+      }
 
-  function donatePoints() {
-    if (xp >= 20) {
-      xp -= 20;
-      document.getElementById('xpPoints').textContent = xp;
-      document.getElementById('xpBarFill').style.width = `${xp}%`;
-      alert("🌱 Thank you! You've donated 20 XP to plant a tree!");
-    } else {
-      alert("You need at least 20 XP to donate.");
-    }
-  }
+      // Capture snapshot
+      function captureSnapshot() {
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(document.querySelector('a-scene').children[0], 0, 0);
+        return canvas.toDataURL('image/png');
+      }
 
-  window.onload = () => document.getElementById('loadingScreen').style.display = 'none';
-</script>
-</body>
+      function saveSnapshot() {
+        const link = document.createElement('a');
+        link.href = lastSnapshotBlob;
+        link.download = `snapshot-${new Date().toISOString()}.png`;
+        link.click();
+      }
+    </script>
+  </body>
 </html>
