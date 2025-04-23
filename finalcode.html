@@ -183,75 +183,116 @@
         gps-entity-place="latitude: 39.0067; longitude: 77.4291">
       </a-image>
     </a-scene>
-
     <script>
-      let xp = 0, level = 1, rewardsCollected = 0, streak = 0;
+  let xp = 0, level = 1, rewardsCollected = 0, streak = 0;
 
-      document.getElementById('reward').addEventListener('click', () => {
-        xp += 10;
-        if (xp >= 100) {
-          xp -= 100;
-          level++;
-        }
-        rewardsCollected++;
-        streak++;
+  function collectReward() {
+    xp += 10;
+    if (xp >= 100) {
+      xp -= 100;
+      level++;
+    }
+    rewardsCollected++;
+    streak++;
 
-        document.getElementById('xpPopup').style.display = 'block';
-        document.getElementById('xpPoints').textContent = xp;
-        document.getElementById('level').textContent = level;
-        document.getElementById('xpBarFill').style.width = `${xp}%`;
-        document.getElementById('count').textContent = rewardsCollected;
-        document.getElementById('streak').textContent = streak + ' 🔥';
+    document.getElementById('xpPopup').style.display = 'block';
+    document.getElementById('xpPoints').textContent = xp;
+    document.getElementById('level').textContent = level;
+    document.getElementById('xpBarFill').style.width = `${xp}%`;
+    document.getElementById('count').textContent = rewardsCollected;
+    document.getElementById('streak').textContent = streak + ' 🔥';
 
-        const rewardItem = document.createElement('div');
-        rewardItem.className = 'wallet-item';
-        rewardItem.textContent = `Reward ${rewardsCollected}`;
-        document.getElementById('walletItems').appendChild(rewardItem);
+    const rewardItem = document.createElement('div');
+    rewardItem.className = 'wallet-item';
+    rewardItem.textContent = `Reward ${rewardsCollected}`;
+    document.getElementById('walletItems').appendChild(rewardItem);
 
-        const confetti = document.getElementById('confettiMessage');
-        confetti.style.display = 'block';
-        setTimeout(() => {
-          document.getElementById('xpPopup').style.display = 'none';
-          confetti.style.display = 'none';
-        }, 2000);
-      });
+    const confetti = document.getElementById('confettiMessage');
+    confetti.style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('xpPopup').style.display = 'none';
+      confetti.style.display = 'none';
+    }, 2000);
+  }
 
-      document.getElementById('walletButton').onclick = () => document.getElementById('walletScreen').style.display = 'block';
-      document.getElementById('closeWalletButton').onclick = () => document.getElementById('walletScreen').style.display = 'none';
+  document.querySelector('#reward').addEventListener('click', () => {
+    const reward = document.querySelector('#reward');
+    const camera = document.querySelector('[gps-camera]');
 
-      document.getElementById('leaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'block';
-      document.getElementById('closeLeaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'none';
+    const rewardData = reward.getAttribute('gps-entity-place');
+    const cameraCoords = camera.components['gps-camera'].currentCoords;
 
-      document.getElementById('chatbotButton').onclick = () => {
-        const bot = document.getElementById('chatbotContainer');
-        bot.style.display = bot.style.display === 'none' ? 'flex' : 'none';
-      };
+    if (!cameraCoords || !rewardData) {
+      alert("GPS data not ready yet.");
+      return;
+    }
 
-      document.getElementById('closeDeals').onclick = () => document.getElementById('dealsNotification').style.display = 'none';
+    const distance = getDistanceFromLatLonInMeters(
+      rewardData.latitude,
+      rewardData.longitude,
+      cameraCoords.latitude,
+      cameraCoords.longitude
+    );
 
-      function sendChat() {
-        const input = document.getElementById('chatText');
-        const msg = input.value.trim();
-        if (msg) {
-          const msgDiv = document.createElement('div');
-          msgDiv.textContent = "👤 " + msg;
-          document.getElementById('chatMessages').appendChild(msgDiv);
-          input.value = '';
-        }
-      }
+    if (distance <= 20) {
+      collectReward();
+    } else {
+      alert("You're too far from the reward!");
+    }
+  });
 
-      function donatePoints() {
-        if (xp >= 20) {
-          xp -= 20;
-          document.getElementById('xpPoints').textContent = xp;
-          document.getElementById('xpBarFill').style.width = `${xp}%`;
-          alert("🌱 Thank you! You've donated 20 XP to plant a tree!");
-        } else {
-          alert("You need at least 20 XP to donate.");
-        }
-      }
+  // Haversine formula to calculate distance between two lat/lon pairs
+  function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-      window.onload = () => document.getElementById('loadingScreen').style.display = 'none';
-    </script>
-  </body>
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return d;
+  }
+
+  document.getElementById('walletButton').onclick = () => document.getElementById('walletScreen').style.display = 'block';
+  document.getElementById('closeWalletButton').onclick = () => document.getElementById('walletScreen').style.display = 'none';
+
+  document.getElementById('leaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'block';
+  document.getElementById('closeLeaderboardButton').onclick = () => document.getElementById('leaderboardScreen').style.display = 'none';
+
+  document.getElementById('chatbotButton').onclick = () => {
+    const bot = document.getElementById('chatbotContainer');
+    bot.style.display = bot.style.display === 'none' ? 'flex' : 'none';
+  };
+
+  document.getElementById('closeDeals').onclick = () => document.getElementById('dealsNotification').style.display = 'none';
+
+  function sendChat() {
+    const input = document.getElementById('chatText');
+    const msg = input.value.trim();
+    if (msg) {
+      const msgDiv = document.createElement('div');
+      msgDiv.textContent = "👤 " + msg;
+      document.getElementById('chatMessages').appendChild(msgDiv);
+      input.value = '';
+    }
+  }
+
+  function donatePoints() {
+    if (xp >= 20) {
+      xp -= 20;
+      document.getElementById('xpPoints').textContent = xp;
+      document.getElementById('xpBarFill').style.width = `${xp}%`;
+      alert("🌱 Thank you! You've donated 20 XP to plant a tree!");
+    } else {
+      alert("You need at least 20 XP to donate.");
+    }
+  }
+
+  window.onload = () => document.getElementById('loadingScreen').style.display = 'none';
+</script>
+</body>
 </html>
