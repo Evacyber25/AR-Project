@@ -1,272 +1,439 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Visa AR Rewards — Hourly Respawn</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
-    <style>
-      #loadingScreen { display:none!important; }
-      :root { --primary:#1A1F71; --accent:#FFB500; --bg:#000; --fg:#fff; }
-      body { margin:0; overflow:hidden; background:var(--bg); color:var(--fg); font-family:Arial,sans-serif; }
-      #uiContainer { position:absolute; top:20px; left:20px; background:var(--primary); padding:15px; border-radius:12px; width:240px; z-index:10; }
-      #uiContainer div { margin-bottom:8px; }
-      #uiContainer button { display:block; width:100%; margin-top:6px; padding:8px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:14px; }
-      #xpBarBackground { background:#333; height:10px; border-radius:5px; overflow:hidden; margin-top:5px; }
-      #xpBarFill { background:var(--accent); height:100%; width:0%; }
-      #xpPopup, #confettiMessage, #dailyPopup { position:absolute; left:50%; transform:translateX(-50%); text-align:center; z-index:20; font-weight:bold; }
-      #xpPopup { top:45%; color:var(--accent); font-size:1.5rem; display:none; animation:floatUp 1.5s ease forwards; }
-      #confettiMessage { top:50%; font-size:2rem; background:var(--accent); color:var(--primary); padding:1rem; border-radius:12px; display:none; }
-      #dailyPopup { bottom:20%; color:var(--primary); font-size:1rem; background:var(--accent); padding:0.5rem 1rem; border-radius:8px; display:none; }
-      @keyframes floatUp { to { transform:translate(-50%,-8rem); opacity:0; } }
-      #walletScreen { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--primary); color:var(--accent); padding:30px; box-sizing:border-box; z-index:30; overflow-y:auto; }
-      .wallet-item { background:var(--accent); color:var(--primary); padding:15px; margin:10px 0; border-radius:10px; text-align:center; }
-      #bottomBar { position:absolute; bottom:env(safe-area-inset-bottom,40px); left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:10; }
-      #bottomBar button { padding:8px 12px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:14px; }
-      #snapshotScreen { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; flex-direction:column; z-index:40; }
-      #snapshotScreen img { max-width:90%; max-height:70%; border:5px solid var(--accent); border-radius:8px; }
-      #snapshotControls { margin-top:20px; display:flex; gap:10px; }
-      #snapshotControls button { padding:10px 20px; border:none; border-radius:8px; background:var(--accent); color:var(--primary); cursor:pointer; font-size:16px; }
-      #chatbot { position:fixed; bottom:10px; right:10px; background-color:#FFF; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0, 0, 0, 0.2); z-index:50; width:300px; max-height:400px; overflow:auto; display:none; }
-      #chatbot .messages { max-height:300px; overflow:auto; }
-      #chatbot input { width:100%; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #ccc; }
-      #leaderboard { position:absolute; top:calc(20px + 350px); left:270px; background:var(--primary); padding:15px; border-radius:12px; width:240px; z-index:10; color: var(--accent); }
-      #leaderboard h3 { text-align:center; margin-bottom:10px; }
-      #leaderboard ul { list-style:none; padding:0; }
-    </style>
-  </head>
-  <body>
-    <div id="loadingScreen">Loading AR Experience…</div>
-    <div id="uiContainer">
-      <div><strong>Level:</strong> <span id="level">1</span></div>
-      <div><strong>XP:</strong> <span id="xpPoints">0</span>/100</div>
-      <div id="xpBarBackground"><div id="xpBarFill"></div></div>
-      <div><strong>Rewards Collected:</strong> <span id="count">0</span></div>
-      <button id="walletButton">🎁 Open Wallet</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visa AR Rewards Gamified</title>
+  <!-- A-Frame & AR.js -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    /* Hide default AR/VR buttons */
+    .a-enter-vr-button, .a-enter-ar-button { display: none !important; }
+    /* Allow HTML UI clicks */
+    a-scene canvas { pointer-events: auto !important; }
+    #uiContainer, #bottomBar, #dealsNotification, #chatbotButton { pointer-events: auto; z-index: 50; }
+    body { margin:0; overflow:hidden; background:#000; color:#fff; font-family:Arial,sans-serif; }
+
+    /* Loading overlay */
+    #loadingScreen {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      background:#000; display:flex; align-items:center; justify-content:center;
+      font-size:24px; color:#fff; z-index:60;
+    }
+
+    /* Top HUD */
+    #uiContainer {
+      position:absolute; top:20px; left:20px;
+      background:#1A1F71; padding:15px; border-radius:12px; width:300px;
+    }
+    #uiContainer div { margin-bottom:8px; }
+    #uiContainer button {
+      width:100%; padding:8px; margin-top:6px;
+      background:#FFB500; color:#1A1F71; border:none; border-radius:8px;
+      font-size:14px; cursor:pointer;
+    }
+    #xpBarBackground { background:#ccc; height:10px; border-radius:5px; overflow:hidden; margin-top:5px; }
+    #xpBarFill       { background:#FFB500; height:10px; width:0%; border-radius:5px; }
+
+    /* Bottom HUD */
+    #bottomBar {
+      position:absolute; bottom:20px; left:50%;
+      transform:translateX(-50%); display:flex; gap:10px;
+    }
+    #bottomBar button {
+      padding:10px 15px; background:#FFB500; color:#1A1F71;
+      border:none; border-radius:8px; font-size:16px; cursor:pointer;
+    }
+
+    /* Floating XP & messages */
+    @keyframes floatUpXP {
+      0%   { transform:translate(-50%,0); opacity:1; }
+      100% { transform:translate(-50%,-150px); opacity:0; }
+    }
+    @keyframes floatUpDonate {
+      0%   { transform:translate(-50%,0) scale(1.1); opacity:1; }
+      100% { transform:translate(-50%,-200px) scale(1); opacity:0; }
+    }
+    #xpPopup, #confettiMessage, #dailyPopup {
+      position:absolute; left:50%; transform:translateX(-50%);
+      text-align:center;
+    }
+    #xpPopup {
+      top:55%; font-size:40px; color:blue; z-index:80;
+      display:none; animation:floatUpXP 2.5s ease forwards;
+    }
+    #confettiMessage {
+      top:45%; background:#FFB500; color:#1A1F71;
+      padding:20px; border-radius:12px; font-size:28px; z-index:75;
+      display:none;
+    }
+    /* Ensure donate popup sits on top */
+    #dailyPopup {
+      bottom:80px; color:#fff; background:transparent; z-index:80;
+      font-size:16px; display:none; animation:floatUpDonate 2s ease forwards;
+    }
+
+    /* Overlays */
+    #walletScreen, #leaderboardScreen, #badgeGalleryScreen {
+      display:none; position:absolute; top:0; left:0;
+      width:100%; height:100%; background:#1A1F71; color:#FFB500;
+      padding:30px; overflow-y:auto; z-index:55;
+    }
+    .wallet-item, #leaderboardList div {
+      background:#FFB500; color:#1A1F71;
+      padding:15px; margin:10px 0; border-radius:10px;
+      font-weight:bold; text-align:center;
+    }
+    #donateButton {
+      display:block; width:100%; padding:10px;
+      background:#28a745; color:#fff; border:none; border-radius:8px;
+      font-size:14px; cursor:pointer; margin-bottom:20px;
+    }
+
+    /* Badge grid */
+    #badgeGrid {
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr));
+      gap:20px; width:100%; max-width:600px; margin:0 auto;
+    }
+    .badge {
+      display:flex; flex-direction:column; align-items:center; cursor:pointer;
+      border:2px solid #FFB500; border-radius:8px; padding:4px;
+    }
+    .badge img { width:80px; height:80px; object-fit:contain; }
+    .badge span { margin-top:4px; text-align:center; font-size:14px; width:100%; color:#FFB500; }
+
+    /* Badge modal */
+    #badgeModal {
+      display:none; position:absolute; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:80;
+    }
+    #badgeModalContent {
+      background:#fff; color:#000; padding:20px; border-radius:12px;
+      max-width:80%; text-align:center;
+    }
+    #badgeModalClose {
+      margin-top:15px; padding:8px 16px; background:#FFB500; color:#1A1F71;
+      border:none; border-radius:8px; cursor:pointer;
+    }
+
+    /* Snapshot overlay */
+    #snapshotScreen {
+      display:none; position:absolute; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,0.9);
+      flex-direction:column; align-items:center; justify-content:center; z-index:55;
+    }
+    #snapshotScreen img {
+      max-width:90%; max-height:70%; border:5px solid #FFB500; border-radius:8px;
+    }
+    #snapshotScreen button {
+      margin-top:20px; padding:10px 20px;
+      background:#FFB500; color:#1A1F71; border:none; border-radius:8px; cursor:pointer;
+    }
+
+    /* Deals Notification */
+    #dealsNotification {
+      display:none; position:absolute; bottom:20px; right:20px;
+      background:#FFB500; color:#1A1F71; padding:15px; border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:50;
+    }
+    #dealsHeader { display:flex; justify-content:space-between; align-items:center; font-weight:bold; }
+    #dealsHeader button { background:none; border:none; font-size:18px; cursor:pointer; color:#1A1F71; }
+
+    /* Chatbot */
+    #chatbotButton {
+      display:none; position:absolute; bottom:20px; left:20px;
+      width:60px; height:60px; background:#FFB500; color:#1A1F71;
+      border-radius:50%; font-size:28px; text-align:center; line-height:60px; cursor:pointer; z-index:50;
+    }
+    #chatbotContainer {
+      display:none; position:absolute; bottom:100px; left:20px;
+      width:300px; background:#fff; color:#000; border-radius:12px;
+      box-shadow:0 0 10px rgba(0,0,0,0.5); flex-direction:column; z-index:50;
+    }
+    #chatMessages { height:200px; padding:10px; overflow-y:auto; }
+    #chatInput { display:flex; border-top:1px solid #ccc; }
+    #chatInput input { flex:1; padding:10px; border:none; }
+    #chatInput button { background:#1A1F71; color:#FFB500; border:none; padding:10px; cursor:pointer; }
+
+    /* Close buttons */
+    #closeWalletButton, #closeLeaderboardButton, #closeBadgesButton {
+      display:block; margin:20px auto; padding:10px 20px;
+      background:#FFB500; color:#1A1F71; border:none; border-radius:8px; cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen">Loading AR Experience...</div>
+
+  <!-- HUD -->
+  <div id="uiContainer">
+    <div><strong>Level:</strong> <span id="level">1</span></div>
+    <div><strong>XP:</strong> <span id="xpPoints">0</span>/100</div>
+    <div id="xpBarBackground"><div id="xpBarFill"></div></div>
+    <div><strong>Rewards Collected:</strong> <span id="count">0</span></div>
+    <div><strong>Daily Streak:</strong> <span id="streak">0</span> 🔥</div>
+    <button id="walletButton">🎁 Open Wallet</button>
+    <button id="leaderboardButton">🏆 Open Leaderboard</button>
+    <button id="badgesButton">🎖️ Badges</button>
+  </div>
+  <div id="bottomBar">
+    <button id="dailyQuestButton">🎯 Daily Quest</button>
+    <button id="snapshotButton">📸 Snapshot</button>
+    <button id="shareButton">📣 Share Progress</button>
+  </div>
+
+  <!-- Popups -->
+  <div id="xpPopup"></div>
+  <div id="confettiMessage"></div>
+  <div id="dailyPopup"></div>
+
+  <!-- Wallet, Leaderboard, Badges -->
+  <div id="walletScreen">
+    <h2>My Rewards Wallet 🎁</h2>
+    <div id="walletItems"></div>
+    <button id="donateButton">🌱 Donate 20 XP to Plant a Tree</button>
+    <button id="closeWalletButton">Close Wallet</button>
+  </div>
+  <div id="leaderboardScreen">
+    <h2>🏆 Leaderboard</h2>
+    <div id="leaderboardList"></div>
+    <button id="closeLeaderboardButton">Close Leaderboard</button>
+  </div>
+  <div id="badgeGalleryScreen">
+    <h2>My Badges</h2>
+    <div id="badgeGrid"></div>
+    <button id="closeBadgesButton">Close Badges</button>
+  </div>
+
+  <!-- Badge Modal -->
+  <div id="badgeModal">
+    <div id="badgeModalContent">
+      <div id="badgeModalText"></div>
+      <button id="badgeModalClose">Close</button>
     </div>
-    <div id="bottomBar">
-      <button id="dailyQuestButton">🎯 Daily Quest</button>
-      <button id="snapshotButton">📸 Snapshot</button>
-      <button id="shareButton">📣 Share Progress</button>
-      <button id="chatButton">💬 Chat</button>
+  </div>
+
+  <!-- Snapshot Overlay -->
+  <div id="snapshotScreen">
+    <img id="snapshotImage" alt="AR Snapshot" />
+    <button id="closeSnapshotButton">✖ Close</button>
+    <button id="saveSnapshotButton">💾 Save/Share</button>
+  </div>
+
+  <!-- Deals & Chatbot -->
+  <div id="dealsNotification">
+    <div id="dealsHeader">
+      🔔 Deals Near You
+      <button id="closeDeals">✖</button>
     </div>
-    <div id="xpPopup">+10 XP!</div>
-    <div id="confettiMessage">🎉 You Collected a Visa Reward!</div>
-    <div id="dailyPopup"></div>
-    <div id="walletScreen">
-      <h2>My Rewards Wallet 🎁</h2>
-      <div id="walletItems"></div>
-      <button id="donateButton">🌱 Donate a Reward to Plant a Tree</button>
-      <div id="donationMessage" style="display:none; margin-top:10px; background:#fff; color:#1A1F71; padding:10px; border-radius:8px;">
-        🌳 Thank you! You've donated a reward to plant a tree!
-      </div>
-      <button id="closeWalletButton">Close Wallet</button>
-      <!-- Leaderboard moved here -->
-      <div id="leaderboard">
-        <h3>Leaderboard</h3>
-        <ul id="leaderboardList">
-          <li>John Doe - Level 5 - 500 XP</li>
-          <li>Jane Smith - Level 4 - 400 XP</li>
-          <li>Tom Brown - Level 3 - 300 XP</li>
-          <li>Alice Green - Level 2 - 200 XP</li>
-          <li>Bob Blue - Level 1 - 100 XP</li>
-        </ul>
-      </div>
+    <ul id="dealsList">
+      <li>20% off at Eco Café</li>
+      <li>Buy 1 Get 1 at Green Market</li>
+      <li>Double XP Weekend!</li>
+    </ul>
+  </div>
+  <div id="chatbotButton">💬</div>
+  <div id="chatbotContainer">
+    <div id="chatMessages"></div>
+    <div id="chatInput">
+      <input id="chatText" placeholder="Ask something…" />
+      <button id="sendChatBtn">Send</button>
     </div>
-    <div id="snapshotScreen">
-      <img id="snapshotImage" src=""/>
-      <div id="snapshotControls">
-        <button id="saveSnapshotButton">💾 Save/Share</button>
-        <button id="closeSnapshotButton">✖ Close</button>
-      </div>
-    </div>
+  </div>
 
-    <!-- Chatbot -->
-    <div id="chatbot">
-      <div class="messages" id="chatMessages"></div>
-      <input type="text" id="chatInput" placeholder="Ask me anything...">
-    </div>
+  <!-- AR Scene -->
+  <a-scene embedded vr-mode-ui="enabled:false" renderer="alpha: true; colorManagement: true"
+           arjs="sourceType:webcam;gpsMinAccuracy:30;gpsTimeInterval:1000;">
+    <a-assets>
+      <a-asset-item id="visaModel" src="https://myrow11.github.io/3d/visa.glb"></a-asset-item>
+      <audio id="collectSound" src="collect.mp3" preload="auto"></audio>
+      <audio id="levelUpSound" src="levelup.mp3" preload="auto"></audio>
+    </a-assets>
 
-    <a-scene embedded vr-mode-ui="enabled:false"
-             arjs="sourceType:webcam; gpsMinAccuracy:30; gpsTimeInterval:1000;">
-      <a-assets>
-        <a-asset-item id="visaModel" src="https://myrow11.github.io/3d/visa.glb"></a-asset-item>
-        <audio id="collectSound" src="collect.mp3" preload="auto"></audio>
-        <audio id="levelUpSound" src="levelup.mp3" preload="auto"></audio>
-      </a-assets>
-      <a-camera gps-camera rotation-reader></a-camera>
-      <a-entity cursor="rayOrigin:mouse" raycaster="objects:.clickable"></a-entity>
-      <a-gltf-model id="reward" class="clickable" src="#visaModel"
-        scale="2 2 2" look-at="[gps-camera]"
-        animation__rotate="property:rotation; to:0 360 0; loop:true; dur:15000"
-        animation__pulse="property:scale; to:2.2 2.2 2.2; dir:alternate; loop:true; dur:1000"
-        visible="false">
-      </a-gltf-model>
-      <a-entity id="collectButton3D" class="clickable" look-at="[gps-camera]" visible="false">
-        <a-box color="#FFB500" depth="0.2" height="0.2" width="0.6"></a-box>
-        <a-text value="Collect!" align="center" color="#000" width="1.5" position="0 0.15 0"></a-text>
-      </a-entity>
-      <a-entity id="sparkles"
-        particle-system="preset:dust; color:#FFB500,#1A1F71; particleCount:120"
-        visible="false">
-      </a-entity>
-    </a-scene>
+    <a-gltf-model
+      id="reward" class="clickable" src="#visaModel" scale="2 2 2"
+      look-at="[gps-camera]"
+      animation__rotate="property:rotation; to:0 360 0; loop:true; dur:15000"
+      animation__pulse="property:scale; to:2.2 2.2 2.2; dir:alternate; loop:true; dur:1000"
+      animation__collect="property:scale; startEvents:collect; from:2 2 2; to:3 3 3; dir:alternate; dur:800"
+      visible="false"></a-gltf-model>
 
-    <script>
-      let rewardCollected = false, xp = 0, level = 1, lastSnapshotBlob = null;
-      const HOUR = 60 * 60 * 1000;
-      let rewardEl, btn3D, countEl;
-      let leaderboardData = [
-        { name: "John Doe", level: 5, xp: 500 },
-        { name: "Jane Smith", level: 4, xp: 400 },
-        { name: "Tom Brown", level: 3, xp: 300 },
-        { name: "Alice Green", level: 2, xp: 200 },
-        { name: "Bob Blue", level: 1, xp: 100 }
-      ];
+    <a-entity id="collectButton3D" class="clickable" look-at="[gps-camera]" visible="false">
+      <a-box color="#FFB500" depth="0.2" height="0.2" width="0.6"></a-box>
+      <a-text value="Collect!" align="center" color="#000" width="1.5" position="0 0.15 0"></a-text>
+    </a-entity>
 
-      // Function to save leaderboard data
-      function saveLeaderboard() {
-        localStorage.setItem('leaderboard', JSON.stringify(leaderboardData));
-        displayLeaderboard();
-      }
+    <a-entity id="sparkles" scale="3 3 3" particle-system="preset:dust; color:#FFB500,#1A1F71; particleCount:200" visible="false"></a-entity>
 
-      // Function to display leaderboard
-      function displayLeaderboard() {
-        const leaderboardList = document.getElementById('leaderboardList');
-        leaderboardList.innerHTML = '';
-        leaderboardData.forEach(entry => {
-          const li = document.createElement('li');
-          li.textContent = `${entry.name} - Level ${entry.level} - ${entry.xp} XP`;
-          leaderboardList.appendChild(li);
-        });
-      }
+    <a-camera gps-camera rotation-reader></a-camera>
+    <a-entity cursor="rayOrigin:mouse" raycaster="objects:.clickable"></a-entity>
+  </a-scene>
 
-      // Chatbot functionality
-      const chatbot = document.getElementById('chatbot');
-      const chatInput = document.getElementById('chatInput');
-      const chatMessages = document.getElementById('chatMessages');
+  <script>
+    // Hide loader on renderstart
+    document.querySelector('a-scene').addEventListener('renderstart', () => {
+      document.getElementById('loadingScreen').style.display      = 'none';
+      document.getElementById('dealsNotification').style.display = 'block';
+      document.getElementById('chatbotButton').style.display     = 'block';
+    });
 
-      // Add chatbot response
-      function sendChatMessage(message) {
-        const p = document.createElement('p');
-        p.textContent = `You: ${message}`;
-        chatMessages.appendChild(p);
-        
-        // Simple bot responses
-        const botMessage = document.createElement('p');
-        if (message.toLowerCase().includes('hello')) {
-          botMessage.textContent = 'Bot: Hi there!';
-        } else if (message.toLowerCase().includes('level')) {
-          botMessage.textContent = `Bot: Your current level is ${level}`;
-        } else if (message.toLowerCase().includes('xp')) {
-          botMessage.textContent = `Bot: You have ${xp} XP`;
-        } else {
-          botMessage.textContent = 'Bot: I\'m not sure how to respond to that.';
-        }
-        chatMessages.appendChild(botMessage);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
+    // State & achievements
+    let xpSession=0, xp=0, level=1, rewardsCollected=0, streak=0, fastCollectCount=0;
+    let rewardCollected=false, lastSnapshotBlob=null;
+    const HOUR=60*60*1000;
+    const achievements=[
+      { id:'global_explorer',  name:'Global Explorer', desc:'Journey across continents and cultures.', icon:'https://img.icons8.com/color/80/000000/globe-earth.png', unlocked:false },
+      { id:'beach_explorer',   name:'Beach Explorer',  desc:'Embrace coastal vibes and seaside adventures.', icon:'https://img.icons8.com/color/80/000000/palm-tree.png', unlocked:false },
+      { id:'medalist',         name:'Medalist',        desc:'Earn prestigious medals for your achievements.', icon:'https://img.icons8.com/color/80/000000/medal.png', unlocked:false },
+      { id:'statue_of_liberty',name:'Statue of Liberty', desc:'Embody freedom under Lady Liberty’s torch.', icon:'https://img.icons8.com/color/80/000000/statue-of-liberty.png', unlocked:false },
+      { id:'maple_leaf',       name:'Maple Leaf',      desc:'Carry the spirit of Canada’s autumn brilliance.', icon:'https://img.icons8.com/color/80/000000/maple-leaf.png', unlocked:false },
+      { id:'amazon_explorer',  name:'Amazon Explorer', desc:'Honor biodiversity and adventure of the Amazon.', icon:'https://img.icons8.com/color/80/000000/jungle.png', unlocked:false },
+      { id:'indian_lotus',     name:'Lotus Bloom',     desc:'Embrace purity like the Indian lotus.', icon:'https://img.icons8.com/color/80/000000/lotus.png', unlocked:false }
+    ];
 
-      // Event listeners
-      chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          sendChatMessage(chatInput.value);
-          chatInput.value = '';
-        }
+    function renderBadgeGallery(){
+      const grid=document.getElementById('badgeGrid'); grid.innerHTML='';
+      achievements.forEach(a=>{
+        const d=document.createElement('div');
+        d.className='badge'+(a.unlocked?' unlocked':'');
+        d.innerHTML=`
+          <img src="${a.icon}" alt="${a.name}" />
+          <span>${a.name}</span>
+        `;
+        d.onclick=()=>{
+          document.getElementById('badgeModalText').innerText=`${a.name}:\n${a.desc}`;
+          document.getElementById('badgeModal').style.display='flex';
+        };
+        grid.appendChild(d);
       });
+    }
 
-      // Toggle chatbot visibility
-      document.getElementById('chatButton').addEventListener('click', () => {
-        chatbot.style.display = chatbot.style.display === 'block' ? 'none' : 'block';
-      });
+    function unlock(a){ a.unlocked=true; showDailyPopup(`🏅 ${a.name}\n${a.desc}`); if(document.getElementById('badgeGalleryScreen').style.display==='flex') renderBadgeGallery(); }
+    function checkAchievements(){ achievements.forEach(a=>{ if(!a.unlocked){ if(a.id==='global_explorer'&&level>=5)unlock(a); if(a.id==='beach_explorer'&&streak>=3)unlock(a); if(a.id==='medalist'&&rewardsCollected>=20)unlock(a); if(a.id==='statue_of_liberty'&&streak>=7)unlock(a); if(a.id==='maple_leaf'&&rewardsCollected>=10)unlock(a); if(a.id==='amazon_explorer'&&fastCollectCount>=3)unlock(a); if(a.id==='indian_lotus'&&xpSession>=100)unlock(a); } }); }
+    function refreshHUD(){ document.getElementById('level').innerText=level; document.getElementById('xpPoints').innerText=xp; document.getElementById('xpBarFill').style.width=xp+'%'; document.getElementById('count').innerText=rewardsCollected; document.getElementById('streak').innerText=streak; }
+    function addXP(p){ xpSession+=p; xp+=p; if(xp>=100){ xp-=100; level++; document.getElementById('levelUpSound').play(); } const pop=document.getElementById('xpPopup'); pop.innerText=`🎯 +${p} XP!`; pop.style.display='block'; setTimeout(()=>pop.style.display='none',3000); refreshHUD(); checkAchievements(); }
+    function showSparkles(pos){ const s=document.getElementById('sparkles'); s.setAttribute('position',pos); s.setAttribute('visible','true'); setTimeout(()=>s.setAttribute('visible','false'),1500); }
+    function showDailyPopup(msg){ const d=document.getElementById('dailyPopup'); d.innerText=msg; d.style.display='block'; setTimeout(()=>d.style.display='none',2000); }
+    function donatePoints(){ if(xp>=20){ xp-=20; refreshHUD(); showDailyPopup('🌱 Donated 20 XP to Plant a Tree!'); document.getElementById('donateButton').animate([{transform:'scale(1.1)'},{transform:'scale(1.3)'},{transform:'scale(1.1)'}],{duration:700,easing:'ease-out'}); } else showDailyPopup('Need 20 XP to donate'); }
+    function sendChat(){ const t=document.getElementById('chatText'),m=t.value.trim(); if(!m)return; const dd=document.createElement('div'); dd.textContent='👤 '+m; document.getElementById('chatMessages').appendChild(dd); t.value=''; }
 
-      window.onload = () => {
-        rewardEl = document.getElementById('reward');
-        btn3D = document.getElementById('collectButton3D');
-        countEl = document.getElementById('count');
-        const dailyBtn = document.getElementById('dailyQuestButton');
-        const walletBtn = document.getElementById('walletButton');
-        const closeWalletBtn = document.getElementById('closeWalletButton');
-        const snapshotBtn = document.getElementById('snapshotButton');
-        const saveSnapshotBtn = document.getElementById('saveSnapshotButton');
-        const closeSnapshotBtn = document.getElementById('closeSnapshotButton');
-        const shareBtn = document.getElementById('shareButton');
-        const donateBtn = document.getElementById('donateButton');
-        const donateMessage = document.getElementById('donationMessage');
-        const walletScreen = document.getElementById('walletScreen');
-        
-        // Show leaderboard
-        displayLeaderboard();
+    window.addEventListener('load',()=>{
+      const rewardEl=document.getElementById('reward'), btn3D=document.getElementById('collectButton3D');
 
-        walletBtn.onclick = () => {
-          walletScreen.style.display = 'block';
-          updateWallet();
-        };
-        
-        closeWalletBtn.onclick = () => {
-          walletScreen.style.display = 'none';
-        };
+      document.getElementById('walletButton').onclick=()=>{
+        const cnt=parseInt(localStorage.getItem('count')||'0',10);
+        document.getElementById('walletItems').innerHTML=cnt?`<div class="wallet-item">🎖️ Visa Reward × ${cnt}</div>`:`<div class="wallet-item">No rewards yet.</div>`;
+        document.getElementById('walletScreen').style.display='block';
+      };
+      document.getElementById('donateButton').onclick=donatePoints;
+      document.getElementById('closeWalletButton').onclick=()=>{ document.getElementById('walletScreen').style.display='none'; };
 
-        donateBtn.onclick = () => {
-          donateMessage.style.display = 'block';
-          setTimeout(() => donateMessage.style.display = 'none', 3000);
-        };
+      document.getElementById('leaderboardButton').onclick=()=>{
+        document.getElementById('leaderboardList').innerHTML=`<div>Alice – 120 XP</div><div>Bob – 90 XP</div><div>You – ${xp} XP</div>`;
+        document.getElementById('leaderboardScreen').style.display='block';
+      };
+      document.getElementById('closeLeaderboardButton').onclick=()=>{ document.getElementById('leaderboardScreen').style.display='none'; };
 
-        saveSnapshotBtn.onclick = () => saveSnapshot();
-
-        shareBtn.onclick = () => alert('Sharing not yet implemented!');
+      document.getElementById('badgesButton').onclick=()=>{
+        renderBadgeGallery(); document.getElementById('badgeGalleryScreen').style.display='flex';
+      };
+      document.getElementById('closeBadgesButton').onclick=()=>{
+        document.getElementById('badgeGalleryScreen').style.display='none';
+      };
+      document.getElementById('badgeModalClose').onclick=()=>{
+        document.getElementById('badgeModal').style.display='none';
       };
 
-      // Function to update wallet display
-      function updateWallet() {
-        const walletItems = document.getElementById('walletItems');
-        walletItems.innerHTML = `
-          <div class="wallet-item">Reward 1</div>
-          <div class="wallet-item">Reward 2</div>
-          <div class="wallet-item">Reward 3</div>
-        `;
-      }
-      
-      // Function to add XP
-      function addXP(amount) {
-        xp += amount;
-        document.getElementById('xpPoints').innerText = xp;
-        const xpPercentage = (xp / 100) * 100;
-        document.getElementById('xpBarFill').style.width = `${xpPercentage}%`;
-        
-        if (xp >= 100) {
-          levelUp();
+      document.getElementById('dailyQuestButton').onclick=()=>{
+        addXP(20); streak++;
+        const b=document.getElementById('dailyQuestButton');
+        b.innerText='🎯 Daily Quest ✓'; b.disabled=true; b.style.opacity=0.6;
+        b.animate([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(1)'}],{duration:500,easing:'ease-out'});
+      };
+
+      document.getElementById('snapshotButton').onclick=()=>{
+        document.querySelector('canvas').toBlob(b=>{
+          lastSnapshotBlob=b;
+          document.getElementById('snapshotImage').src=URL.createObjectURL(b);
+          document.getElementById('snapshotScreen').style.display='flex';
+        });
+      };
+      document.getElementById('closeSnapshotButton').onclick=()=>{
+        document.getElementById('snapshotScreen').style.display='none';
+      };
+      document.getElementById('saveSnapshotButton').onclick=async()=>{
+        if(!lastSnapshotBlob) return;
+        const f=new File([lastSnapshotBlob],'snapshot.png',{type:lastSnapshotBlob.type});
+        if(navigator.canShare?.({files:[f]})){
+          await navigator.share({files:[f],title:'AR Snapshot'});
+        } else {
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(lastSnapshotBlob);
+          a.download='snapshot.png';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
-      }
+        checkAchievements();
+      };
 
-      // Function to handle level up
-      function levelUp() {
-        level++;
-        xp = 0;
-        document.getElementById('level').innerText = level;
-        document.getElementById('xpPoints').innerText = xp;
-        alert(`Congratulations! You reached level ${level}`);
-        leaderboardData.push({ name: 'Player', level: level, xp: 100 });
-        saveLeaderboard();  // Save updated leaderboard
-      }
+      document.getElementById('shareButton').onclick=async()=>{
+        if(!navigator.share) return;
+        await navigator.share({
+          title:`I’m Level ${level}!`,
+          text:`I’ve got ${xp} XP & collected ${localStorage.getItem('count')||0} rewards!`,
+          url:location.href
+        });
+        checkAchievements();
+      };
 
-      // Capture snapshot
-      function captureSnapshot() {
-        const canvas = document.createElement('canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(document.querySelector('a-scene').children[0], 0, 0);
-        return canvas.toDataURL('image/png');
-      }
+      document.getElementById('closeDeals').onclick=()=>{ document.getElementById('dealsNotification').style.display='none'; };
 
-      function saveSnapshot() {
-        const link = document.createElement('a');
-        link.href = lastSnapshotBlob;
-        link.download = `snapshot-${new Date().toISOString()}.png`;
-        link.click();
+      document.getElementById('chatbotButton').onclick=()=>{
+        const c=document.getElementById('chatbotContainer');
+        c.style.display=(c.style.display==='flex'?'none':'flex');
+      };
+      document.getElementById('sendChatBtn').onclick=sendChat;
+
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+          const off=0.00009, lat=pos.coords.latitude+off, lon=pos.coords.longitude+off;
+          const attr=`latitude:${lat}; longitude:${lon}`;
+          rewardEl.setAttribute('gps-entity-place',attr);
+          btn3D.setAttribute('gps-entity-place',attr);
+          rewardEl.setAttribute('visible','true');
+          btn3D.setAttribute('visible','true');
+
+          const collect=()=>{
+            if(rewardCollected) return;
+            rewardCollected=true;
+            rewardEl.emit('collect');
+            setTimeout(()=>{
+              rewardEl.setAttribute('visible','false');
+              btn3D.setAttribute('visible','false');
+            },800);
+            const cm=document.getElementById('confettiMessage');
+            cm.innerText='🎉 You Collected a Visa Reward!';
+            cm.style.display='block';
+            let cnt=parseInt(localStorage.getItem('count')||'0',10)+1;
+            localStorage.setItem('count',cnt);
+            rewardsCollected++; fastCollectCount++;
+            addXP(10);
+            showSparkles(rewardEl.getAttribute('position'));
+            setTimeout(()=>cm.style.display='none',3500);
+            refreshHUD();
+            setTimeout(()=>{
+              rewardCollected=false;
+              rewardEl.setAttribute('visible','true');
+              btn3D.setAttribute('visible','true');
+            },HOUR);
+          };
+
+          rewardEl.addEventListener('click',collect);
+          btn3D.addEventListener('click',collect);
+        },err=>console.error(err),{enableHighAccuracy:true});
       }
-    </script>
-  </body>
+    });
+  </script>
+</body>
 </html>
+
